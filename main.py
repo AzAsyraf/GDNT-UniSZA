@@ -660,12 +660,13 @@ def main():
     col1, col2, col3 = st.columns([1, 3, 1])
 
     with col1:
-        st.markdown("""
-        <div style='text-align: center; padding: 1rem;'>
-            <div style='font-size: 3rem; margin-bottom: 0.5rem;'>📐</div>
-            <div style='color: #6b7280; font-size: 0.9rem; font-weight: 500;'>GD&T</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # st.markdown("""
+        # <div style='text-align: center; padding: 1rem;'>
+        #     <div style='font-size: 3rem; margin-bottom: 0.5rem;'>📐</div>
+        #     <div style='color: #6b7280; font-size: 0.9rem; font-weight: 500;'>GD&T</div>
+        # </div>
+        # """, unsafe_allow_html=True)
+        st.image('./assets/unisza.png', width=250, use_container_width='auto')
 
     with col2:
         st.markdown(
@@ -674,12 +675,13 @@ def main():
             '<p class="subtitle">Advanced STEP File Analysis for Mechanical Engineering</p>', unsafe_allow_html=True)
 
     with col3:
-        st.markdown("""
-        <div style='text-align: center; padding: 1rem;'>
-            <div style='font-size: 3rem; margin-bottom: 0.5rem;'>🔧</div>
-            <div style='color: #6b7280; font-size: 0.9rem; font-weight: 500;'>CAD</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # st.markdown("""
+        # <div style='text-align: center; padding: 1rem;'>
+        #     <div style='font-size: 3rem; margin-bottom: 0.5rem;'>🔧</div>
+        #     <div style='color: #6b7280; font-size: 0.9rem; font-weight: 500;'>CAD</div>
+        # </div>
+        # """, unsafe_allow_html=True)
+        st.image('./assets/frit.png', width=250, use_container_width='auto')
 
     # Enhanced sidebar with tabs
     st.sidebar.header("🎛️ Control Panel")
@@ -1067,32 +1069,6 @@ def main():
         <div class="info-card">
             <h3>🚀 Welcome to GD&T Tolerance Extractor</h3>
             <p>This advanced tool helps mechanical engineers extract and analyze GD&T tolerance data from STEP files.</p>
-            
-            <h4>📋 Getting Started:</h4>
-            <ol>
-                <li><strong>Upload:</strong> Select a STEP (.step, .stp) or text file using the sidebar</li>
-                <li><strong>Extract:</strong> The application automatically extracts tolerance values and datums</li>
-                <li><strong>Filter:</strong> Use the filter options to focus on specific data</li>
-                <li><strong>Analyze:</strong> View statistical analysis and visualizations</li>
-                <li><strong>Export:</strong> Download results in multiple formats</li>
-            </ol>
-            
-            <h4>🔧 Supported Features:</h4>
-            <ul>
-                <li>Multiple tolerance types (Flatness, Straightness, Circularity, Cylindricity, etc.)</li>
-                <li>Datum reference extraction and analysis</li>
-                <li>Surface orientation detection</li>
-                <li>Statistical analysis and visualization</li>
-                <li>Advanced filtering and export options</li>
-            </ul>
-            
-            <h4>📊 What You'll Get:</h4>
-            <ul>
-                <li>Comprehensive tolerance data table</li>
-                <li>Interactive visualizations</li>
-                <li>Statistical analysis reports</li>
-                <li>Export-ready data formats</li>
-            </ul>
         </div>
         """, unsafe_allow_html=True)
 
