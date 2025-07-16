@@ -11,3 +11,8 @@
 
 You should see this:
 `(.venv) C:\Users\User\Documents\MastersDegreeProject\GDNT> ...`
+
+4. Install all required packages in `requirements.txt`
+`pip install -r requirements.txt`
+
+5. Settle!
