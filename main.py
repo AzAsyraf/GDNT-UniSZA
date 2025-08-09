@@ -734,3 +734,297 @@ def main():
                 range_values = st.slider(
                     "Tolerance Value Range",
                     min_val, max_val, (min_val, max_val),
+                    step=0.001
+                )
+                st.session_state.filter_settings['range_filter'] = range_values
+
+            # Reset filters
+            if st.button("🔄 Reset Filters"):
+                st.session_state.filter_settings = {
+                    'type_filter': 'All',
+                    'datum_filter': 'All',
+                    'location_filter': 'All'
+                }
+                st.rerun()
+        else:
+            st.info("Upload a file to enable filtering options")
+
+    with tab3:
+        # Enhanced export options
+        st.markdown("### 📥 Export Options")
+        if st.session_state.results_data:
+            export_format = st.selectbox(
+                "Export Format",
+                ["CSV", "Excel", "JSON", "TXT"],
+                help="Choose format for exporting results"
+            )
+
+            include_analysis = st.checkbox("Include analysis data", value=True)
+            include_timestamp = st.checkbox(
+                "Include timestamp in filename", value=True)
+
+            if st.button("📥 Generate Download Link"):
+                df = pd.DataFrame(st.session_state.results_data)
+                # Apply filters before export
+                filtered_df = apply_filters(df)
+
+                filename = os.path.splitext(st.session_state.filename)[
+                    0] if st.session_state.filename else "gdt_results"
+                download_link = create_download_link(
+                    filtered_df, filename, export_format)
+                st.markdown(download_link, unsafe_allow_html=True)
+                st.success("Download link generated!")
+        else:
+            st.info("Upload and process a file to enable export options")
+
+    # Clear results with confirmation
+    if st.sidebar.button("🗑️ Clear All Data"):
+        if st.sidebar.button("⚠️ Confirm Clear"):
+            st.session_state.results_data = []
+            st.session_state.filename = ""
+            st.session_state.analysis_results = {}
+            st.session_state.processing_history = []
+            st.success("All data cleared!")
+            st.rerun()
+
+    # Main content area with enhanced layout
+    st.markdown("---")
+
+    # Current file indicator
+    if st.session_state.filename:
+        st.markdown(f"""
+        <div class="info-card">
+            <strong>📁 Current File:</strong> {st.session_state.filename}<br>
+            <strong>⏰ Last Updated:</strong> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Apply filters function
+    def apply_filters(df):
+        filtered_df = df.copy()
+
+        if st.session_state.filter_settings['type_filter'] != 'All':
+            filtered_df = filtered_df[filtered_df['Type'] ==
+                                      st.session_state.filter_settings['type_filter']]
+
+        if st.session_state.filter_settings['location_filter'] != 'All':
+            filtered_df = filtered_df[filtered_df['Location'] ==
+                                      st.session_state.filter_settings['location_filter']]
+
+        if st.session_state.filter_settings['datum_filter'] != 'All':
+            filtered_df = filtered_df[filtered_df['Datum'] ==
+                                      st.session_state.filter_settings['datum_filter']]
+
+        # Apply range filter if exists
+        if 'range_filter' in st.session_state.filter_settings:
+            range_min, range_max = st.session_state.filter_settings['range_filter']
+            filtered_df = filtered_df[
+                (filtered_df['Numeric_Value'].isna()) |
+                ((filtered_df['Numeric_Value'] >= range_min) &
+                 (filtered_df['Numeric_Value'] <= range_max))
+            ]
+
+        return filtered_df
+
+    # Display results with enhanced features
+    if st.session_state.results_data:
+        df = pd.DataFrame(st.session_state.results_data)
+        filtered_df = apply_filters(df)
+
+        # Enhanced metrics dashboard
+        st.header("📊 Data Overview")
+
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            total_entries = len(filtered_df)
+            st.metric("📋 Total Entries", total_entries, delta=len(
+                filtered_df) - len(df) if len(filtered_df) != len(df) else None)
+
+        with col2:
+            tolerances = filtered_df[filtered_df['Category'] == 'Tolerance']
+            st.metric("📏 Tolerances", len(tolerances))
+
+        with col3:
+            datums = filtered_df[filtered_df['Category'] == 'Datum']
+            st.metric("📍 Datums", len(datums))
+
+        with col4:
+            unique_types = filtered_df['Type'].nunique()
+            st.metric("🔢 Unique Types", unique_types)
+
+        # Tabbed interface for different views
+        tab1, tab2, tab3, tab4 = st.tabs(
+            ["📋 Data Table", "📊 Visualizations", "🔍 Analysis", "📈 Statistics"])
+
+        with tab1:
+            st.subheader("📋 Extracted GD&T Data")
+
+            # Enhanced table display
+            display_df = filtered_df.drop(
+                columns=['Numeric_Value'], errors='ignore')
+
+            # Color coding for different categories
+            def style_dataframe(df):
+                def color_category(val):
+                    if 'Datum' in str(val):
+                        return 'background-color: #e8f5e8'
+                    elif any(symbol in str(val) for symbol in ['─', '□', '○', '⌀']):
+                        return 'background-color: #fff3cd'
+                    return ''
+
+                return df.style.applymap(color_category, subset=['Type'])
+
+            st.dataframe(
+                style_dataframe(display_df),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Type": st.column_config.TextColumn("Type", width="medium"),
+                    "Value": st.column_config.TextColumn("Value", width="small"),
+                    "Datum": st.column_config.TextColumn("Datum", width="small"),
+                    "Location": st.column_config.TextColumn("Location", width="medium"),
+                    "Surface": st.column_config.TextColumn("Surface", width="large"),
+                    "Category": st.column_config.TextColumn("Category", width="small")
+                }
+            )
+
+            # Filter summary
+            if len(filtered_df) != len(df):
+                st.info(
+                    f"🔍 Showing {len(filtered_df)} of {len(df)} entries (filtered)")
+
+        with tab2:
+            st.subheader("📊 Data Visualizations")
+
+            # Create visualizations
+            fig1, fig2, fig3 = create_visualizations(filtered_df)
+
+            if fig1:
+                st.plotly_chart(fig1, use_container_width=True)
+
+            if fig2:
+                st.plotly_chart(fig2, use_container_width=True)
+
+            if fig3:
+                st.plotly_chart(fig3, use_container_width=True)
+
+            if not any([fig1, fig2, fig3]):
+                st.info("No visualizations available for current data")
+
+        with tab3:
+            st.subheader("🔍 Statistical Analysis")
+
+            if st.session_state.analysis_results:
+                analysis = st.session_state.analysis_results
+
+                # Statistical summary
+                if 'mean_tolerance' in analysis:
+                    col1, col2, col3 = st.columns(3)
+
+                    with col1:
+                        st.metric("📊 Mean Tolerance",
+                                  f"{analysis['mean_tolerance']:.4f}")
+                        st.metric("📏 Min Tolerance",
+                                  f"{analysis['min_tolerance']:.4f}")
+
+                    with col2:
+                        st.metric("📈 Std Deviation",
+                                  f"{analysis['std_tolerance']:.4f}")
+                        st.metric("📏 Max Tolerance",
+                                  f"{analysis['max_tolerance']:.4f}")
+
+                    with col3:
+                        st.metric("📊 Median Tolerance",
+                                  f"{analysis['median_tolerance']:.4f}")
+
+                # Tightest and loosest tolerances
+                if 'tightest_tolerance' in analysis:
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        st.markdown("### 🎯 Tightest Tolerance")
+                        tight = analysis['tightest_tolerance']
+                        st.write(f"**Value:** {tight['value']:.4f}")
+                        st.write(f"**Type:** {tight['type']}")
+                        st.write(f"**Location:** {tight['location']}")
+
+                    with col2:
+                        st.markdown("### 🎯 Loosest Tolerance")
+                        loose = analysis['loosest_tolerance']
+                        st.write(f"**Value:** {loose['value']:.4f}")
+                        st.write(f"**Type:** {loose['type']}")
+                        st.write(f"**Location:** {loose['location']}")
+
+                # Datum usage analysis
+                if 'datum_usage' in analysis:
+                    st.markdown("### 📍 Datum Usage")
+                    datum_df = pd.DataFrame(list(analysis['datum_usage'].items()), columns=[
+                                            'Datum', 'Usage Count'])
+                    st.dataframe(
+                        datum_df, use_container_width=True, hide_index=True)
+
+            else:
+                if st.button("🔄 Run Analysis"):
+                    st.session_state.analysis_results = analyze_tolerances(
+                        filtered_df)
+                    st.rerun()
+
+        with tab4:
+            st.subheader("📈 Detailed Statistics")
+
+            # Tolerance distribution
+            tolerance_df = filtered_df[filtered_df['Category'] == 'Tolerance']
+            if not tolerance_df.empty:
+                st.markdown("### 📊 Tolerance Type Distribution")
+                type_counts = tolerance_df['Type'].value_counts()
+                st.bar_chart(type_counts)
+
+                st.markdown("### 📍 Location Distribution")
+                location_counts = tolerance_df['Location'].value_counts()
+                st.bar_chart(location_counts)
+
+                # Numeric analysis
+                numeric_values = tolerance_df['Numeric_Value'].dropna()
+                if not numeric_values.empty:
+                    st.markdown("### 📏 Tolerance Value Statistics")
+                    stats_df = pd.DataFrame({
+                        'Statistic': ['Count', 'Mean', 'Std', 'Min', '25%', '50%', '75%', 'Max'],
+                        'Value': [
+                            len(numeric_values),
+                            numeric_values.mean(),
+                            numeric_values.std(),
+                            numeric_values.min(),
+                            numeric_values.quantile(0.25),
+                            numeric_values.quantile(0.5),
+                            numeric_values.quantile(0.75),
+                            numeric_values.max()
+                        ]
+                    })
+                    st.dataframe(
+                        stats_df, use_container_width=True, hide_index=True)
+
+    else:
+        # Enhanced instructions when no file is loaded
+        st.markdown("""
+        <div class="info-card">
+            <h3>🚀 Welcome to GD&T Tolerance Extractor</h3>
+            <p>This advanced tool helps mechanical engineers extract and analyze GD&T tolerance data from STEP files.</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Sample data preview
+        st.markdown("### 📋 Sample Output Preview")
+        sample_data = {
+            'Type': ['□ Flatness', '○ Circularity', '📍 Datum', '─ Straightness'],
+            'Value': ['±0.05', '±0.02', 'A', '±0.01'],
+            'Datum': ['A', 'A', 'A', 'B'],
+            'Location': ['top face', 'cylindrical side', 'top face', 'cylindrical side'],
+            'Surface': ['top face', 'curved side of cylinder', 'top face', 'curved side of cylinder']
+        }
+        sample_df = pd.DataFrame(sample_data)
+        st.dataframe(sample_df, use_container_width=True, hide_index=True)
+
+
+if __name__ == "__main__":
+    main()
